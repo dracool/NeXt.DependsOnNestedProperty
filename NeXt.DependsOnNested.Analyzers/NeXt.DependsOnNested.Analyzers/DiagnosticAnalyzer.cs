@@ -36,7 +36,6 @@ namespace NeXt.DependsOnNested.Analyzers
         );
         
         private const string AttributeClassName = "DependsOnNestedAttribute";
-        private const string AttributeClassNamespace = "NeXt.DependsOnNestedProperty";
         private const string AttributeAssemblyName = "NeXt.DependsOnNestedProperty";
         private const string AttributeAssemblyPublicKeyToken = "bd60f046a0f38f5e";
 
@@ -68,6 +67,11 @@ namespace NeXt.DependsOnNested.Analyzers
             ));
         }
         
+        /// <summary>
+        /// Creates a lower case hex string from a byte array
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
         private static string TokenFromByteStream(IEnumerable<byte> bytes)
         {
             return string.Concat(bytes.Select(b => $"{b:x2}"));
@@ -76,15 +80,13 @@ namespace NeXt.DependsOnNested.Analyzers
         private static void AnalyzeProperty(SymbolAnalysisContext context)
         {
             var symbol = (IPropertySymbol) context.Symbol;
-            
+
             var attribs = symbol.GetAttributes()
                 .Where(a => a.AttributeClass.ContainingAssembly.Identity.Name == AttributeAssemblyName)
-                .Where(a => a.AttributeClass.ContainingNamespace.Name == AttributeClassNamespace)
-                .Where(a => a.AttributeClass.Name == AttributeClassName)
                 .Where(a => a.AttributeClass.ContainingAssembly.Identity.IsStrongName)
-                .Where(a => TokenFromByteStream(a.AttributeClass.ContainingAssembly.Identity.PublicKeyToken) == AttributeAssemblyPublicKeyToken);
+                .Where(a => TokenFromByteStream(a.AttributeClass.ContainingAssembly.Identity.PublicKeyToken) == AttributeAssemblyPublicKeyToken)
+                .Where(a => a.AttributeClass.Name == AttributeClassName);
             
-
             foreach (var attrib in attribs)
             {
                 var syntax = attrib.ApplicationSyntaxReference.GetSyntax() as AttributeSyntax;
@@ -105,6 +107,13 @@ namespace NeXt.DependsOnNested.Analyzers
             }
         }
 
+        /// <summary>
+        /// recursively checks if a type symbol satisfies the requirements for a given branch
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="type"></param>
+        /// <param name="path"></param>
+        /// <param name="index"></param>
         private static void AnalyzePathBranch(SymbolAnalysisContext context, ITypeSymbol type, IReadOnlyList<string> path, int index = 0)
         {
             if (index >= path.Count) return;
