@@ -11,7 +11,7 @@ namespace NeXt.DependsOnNestedProperty
     /// <summary>
     /// automatically manages nested property change dependencies by subscribing to all propertychanged events on the path
     /// </summary>
-    public sealed class NestedPropertyChangedRegistration : IDisposable
+    public sealed partial class NestedPropertyChangedRegistration : IDisposable
     {
         /// <summary>
         /// Create a new registration for all nested dependant properties on the <paramref name="target"/> object
@@ -28,18 +28,18 @@ namespace NeXt.DependsOnNestedProperty
         
         private Action<string> InvokePropertyChanged { get; set; }
         
-        private readonly ConcurrentDictionary<string, ConcurrentBag<Registration>> registrations;
+        private readonly ConcurrentDictionary<string, ConcurrentBag<RegistrationBase>> registrations;
 
-        private void Add(string name, Registration registration)
+        private void Add(string name, RegistrationBase registration)
         {
-            registrations.GetOrAdd(name, k => new ConcurrentBag<Registration>()).Add(registration);
+            registrations.GetOrAdd(name, k => new ConcurrentBag<RegistrationBase>()).Add(registration);
         }
 
 
         private NestedPropertyChangedRegistration(Type targetType, INotifyPropertyChanged target, Action<string> onPropertyChanged)
         {
             InvokePropertyChanged = onPropertyChanged;
-            registrations = new ConcurrentDictionary<string, ConcurrentBag<Registration>>();
+            registrations = new ConcurrentDictionary<string, ConcurrentBag<RegistrationBase>>();
 
             Register(targetType, target);
         }
@@ -82,7 +82,7 @@ namespace NeXt.DependsOnNestedProperty
             var prop = t.GetProperty(path[path.Count - 1], BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
             if (prop == null) throw new InvalidOperationException($"Path item was not valid: \"{path[path.Count - 1]}\"");
 
-            Registration current = new PrimaryRegistration(InvokePropertyChanged, name, prop.Name);
+            RegistrationBase current = new PrimaryRegistration(InvokePropertyChanged, name, prop.Name);
 
             while (stack.Count > 0)
             {
@@ -134,121 +134,6 @@ namespace NeXt.DependsOnNestedProperty
             }
 
             InvokePropertyChanged = null;
-        }
-
-        private abstract class Registration : IDisposable
-        {
-            protected abstract void DoRegister(INotifyPropertyChanged target);
-            protected abstract void DoUnregister(INotifyPropertyChanged target);
-
-            protected INotifyPropertyChanged Target { get; private set; }
-
-            public void Register(INotifyPropertyChanged target)
-            {
-                if (target == null) return;
-                Target = target;
-                DoRegister(this.Target);
-            }
-
-            public void Unregister()
-            {
-                if (Target == null) return;
-
-                DoUnregister(Target);
-                Target = null;
-            }
-
-            protected virtual void DoDispose() { }
-
-            public void Dispose()
-            {
-                Unregister();
-            }
-        }
-
-        private class SubRegistration : Registration
-        {
-            public SubRegistration(string name, Registration next, Func<INotifyPropertyChanged, INotifyPropertyChanged> getter)
-            {
-                this.name = name;
-                this.next = next;
-                this.getter = getter;
-            }
-
-            private readonly string name;
-            private readonly Registration next;
-
-            private Func<INotifyPropertyChanged, INotifyPropertyChanged> getter;
-
-            private void Bind(INotifyPropertyChanged newTarget)
-            {
-                next.Unregister();
-                next.Register(newTarget);
-            }
-            
-            private void PropertyChanged(object sender, PropertyChangedEventArgs e)
-            {
-                if (e.PropertyName != name) return;
-
-                Bind(getter(Target));
-            }
-
-            protected override void DoRegister(INotifyPropertyChanged target)
-            {
-                target.PropertyChanged += PropertyChanged;
-                next.Register(getter(target));
-            }
-            
-            protected override void DoUnregister(INotifyPropertyChanged target)
-            {
-                next.Unregister();
-                target.PropertyChanged -= PropertyChanged;
-            }
-
-            /// <inheritdoc />
-            protected override void DoDispose()
-            {
-                getter = null;
-            }
-        }
-
-        private class PrimaryRegistration : Registration
-        {
-            public PrimaryRegistration(Action<string> invokePropertyChanged, string name, string propertyName)
-            {
-                this.invokePropertyChanged = invokePropertyChanged;
-                this.name = name;
-                this.propertyName = propertyName;
-            }
-
-            private Action<string> invokePropertyChanged;
-            private readonly string name;
-            private readonly string propertyName;
-
-            private void PropertyChanged(object sender, PropertyChangedEventArgs e)
-            {
-                if (e.PropertyName != propertyName) return;
-                invokePropertyChanged(name);
-            }
-
-            /// <inheritdoc />
-            protected override void DoRegister(INotifyPropertyChanged target)
-            {
-                target.PropertyChanged += PropertyChanged;
-                invokePropertyChanged(name);
-            }
-
-            /// <inheritdoc />
-            protected override void DoUnregister(INotifyPropertyChanged target)
-            {
-                target.PropertyChanged -= PropertyChanged;
-            }
-
-            /// <inheritdoc />
-            protected override void DoDispose()
-            {
-                invokePropertyChanged = null;
-            }
         }
     }
 }

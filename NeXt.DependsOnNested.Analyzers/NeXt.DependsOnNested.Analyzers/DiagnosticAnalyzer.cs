@@ -120,7 +120,7 @@ namespace NeXt.DependsOnNested.Analyzers
 
             var any = false;
 
-            foreach (var property in type.GetMembers(path[index]).Where(s => s is IPropertySymbol && !s.IsAbstract && !s.IsStatic).Cast<IPropertySymbol>())
+            foreach (var property in type.GetMembers(path[index]).Where(s => s is IPropertySymbol && !s.IsStatic).Cast<IPropertySymbol>())
             {
                 any = true;
                 AnalyzePathBranch(context, property.Type, path, index + 1);

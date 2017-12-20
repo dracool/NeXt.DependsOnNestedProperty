@@ -56,6 +56,9 @@
   <ItemGroup>
     <Compile Include="DependsOnNestedAttribute.cs" />
     <Compile Include="NestedPropertyChangedRegistration.cs" />
+    <Compile Include="NestedPropertyChangedRegistration.PrimaryRegistration.cs" />
+    <Compile Include="NestedPropertyChangedRegistration.RegistrationBase.cs" />
+    <Compile Include="NestedPropertyChangedRegistration.SubRegistration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

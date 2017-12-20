@@ -8,6 +8,7 @@ namespace NeXt.DependsOnNestedProperty
     /// <summary>
     /// Marks a property for deep nested change tracking
     /// </summary>
+    /// <inheritdoc />
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
     public sealed class DependsOnNestedAttribute : Attribute 
     {
@@ -15,6 +16,7 @@ namespace NeXt.DependsOnNestedProperty
         /// Marks a property for deep nested change tracking
         /// </summary>
         /// <param name="path">the full dot seperated property path (validity is checked by analyzer if enabled)</param>
+        /// <inheritdoc />
         public DependsOnNestedAttribute(string path)
         {
           Path = new ReadOnlyCollection<string>(path.Split('.').ToList());  
